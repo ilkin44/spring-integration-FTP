@@ -1,24 +1,17 @@
 package test.project.spring_integration.config;
 
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.InboundChannelAdapter;
-import org.springframework.integration.annotation.MessagingGateway;
 import org.springframework.integration.annotation.Poller;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.core.MessageSource;
-import org.springframework.integration.file.FileHeaders;
 import org.springframework.integration.file.FileReadingMessageSource;
 import org.springframework.integration.file.FileWritingMessageHandler;
 import org.springframework.integration.file.filters.SimplePatternFileListFilter;
 import org.springframework.integration.file.support.FileExistsMode;
-import org.springframework.integration.ftp.outbound.FtpMessageHandler;
-import org.springframework.integration.ftp.session.DefaultFtpSessionFactory;
-import org.springframework.integration.ftp.session.FtpRemoteFileTemplate;
-import org.springframework.integration.ftp.session.FtpSession;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
@@ -26,37 +19,31 @@ import java.io.File;
 
 @Configuration
 @EnableIntegration
-public class BasicIntegrationConfig{
-    @Bean
-    public DefaultFtpSessionFactory ftpSessionFactory() {
-        DefaultFtpSessionFactory ftpSessionFactory = new DefaultFtpSessionFactory();
-        ftpSessionFactory.setHost("ftp.example.com");
-        ftpSessionFactory.setPort(21);
-        ftpSessionFactory.setUsername("your-ftp-username");
-        ftpSessionFactory.setPassword("your-ftp-password");
-        ftpSessionFactory.setClientMode(2); // 2 for passive mode, 0 for active mode
-        return ftpSessionFactory;
-    }
-
+public class BasicIntegrationConfig {
+    public String INPUT_DIR = "C:\\Users\\Owner\\Desktop\\INPUT";
+    public String OUTPUT_DIR = "C:\\Users\\Owner\\Desktop\\OUTPUT";
+    public String FILE_PATTERN = "*.pdf";
 
     @Bean
-    public FtpRemoteFileTemplate ftpRemoteFileTemplate(FtpSession ftpSession) {
-        return new FtpRemoteFileTemplate(ftpSession);
+    public MessageChannel fileChannel() {
+        return new DirectChannel();
     }
 
     @Bean
-    public FtpMessageHandler ftpMessageHandler(FtpSession ftpSession) {
-        FtpMessageHandler handler = new FtpMessageHandler(ftpSession);
-        handler.setRemoteDirectoryExpressionString("/upload");
-        handler.setFileNameGenerator((message) -> {
-            return "uploaded_" + message.getHeaders().get(FileHeaders.FILENAME);
-        });
-        handler.setFileExistsMode(FileExistsMode.FAIL);
+    @InboundChannelAdapter(value = "fileChannel", poller = @Poller(fixedDelay = "1000"))
+    public MessageSource<File> fileReadingMessageSource() {
+        FileReadingMessageSource sourceReader = new FileReadingMessageSource();
+        sourceReader.setDirectory(new File(INPUT_DIR));
+        sourceReader.setFilter(new SimplePatternFileListFilter(FILE_PATTERN));
+        return sourceReader;
+    }
+
+    @Bean
+    @ServiceActivator(inputChannel = "fileChannel")
+    public MessageHandler fileWritingMessageHandler() {
+        FileWritingMessageHandler handler = new FileWritingMessageHandler(new File(OUTPUT_DIR));
+        handler.setFileExistsMode(FileExistsMode.REPLACE);
+        handler.setExpectReply(false);
         return handler;
-    }
-
-    @MessagingGateway(defaultRequestChannel = "toFtpChannel")
-    public interface UploadGateway {
-        void upload(File file);
     }
 }
