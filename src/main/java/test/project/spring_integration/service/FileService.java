@@ -65,7 +65,7 @@ public class FileService {
 
     public void upload(MultipartFile multipartFile) throws IOException {
         // Save the file locally
-        Path uploadDir = Paths.get("C:\\Users\\Owner\\Desktop\\OUTPUT");
+        Path uploadDir = Paths.get(".\\apache-ftpserver-1.2.0");
         String fileName = multipartFile.getOriginalFilename();
         Path filePath = uploadDir.resolve(fileName);
 

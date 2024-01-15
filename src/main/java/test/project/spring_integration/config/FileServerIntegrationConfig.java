@@ -22,7 +22,7 @@ public class FileServerIntegrationConfig {
         defaultFtpSessionFactory.setPassword("");
         defaultFtpSessionFactory.setUsername("anonymous");
         defaultFtpSessionFactory.setHost("localhost");
-        defaultFtpSessionFactory.setPort(21);
+        defaultFtpSessionFactory.setPort(2121);
         return defaultFtpSessionFactory;
     }
 
